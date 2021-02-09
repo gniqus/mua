@@ -3,6 +3,7 @@ package mua
 import (
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 type Handler func(http.ResponseWriter, *http.Request)
@@ -35,9 +36,16 @@ func (e *engine) Start(address string) error {
 }
 
 func (e *engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if handler, ok := e.handlers[r.Method][r.URL.Path]; ok {
-		handler(w, r)
+	node, _ := e.findRoute(r.Method, r.URL.Path)
+	if node != nil {
+		path := "/" + strings.Join(node.path, "/")
+		e.handlers[r.Method][path](w, r)
 	} else {
 		fmt.Fprintln(w, "404 NOT FOUND")
 	}
+	// if handler, ok := e.handlers[r.Method][r.URL.Path]; ok {
+	// 	handler(w, r)
+	// } else {
+	// 	fmt.Fprintln(w, "404 NOT FOUND")
+	// }
 }
