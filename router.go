@@ -23,29 +23,31 @@ func newRouter() *router {
 }
 
 func (r *router) registerRoute(method string, path string, handler Handler) error {
-	method = strings.ToUpper(method)
 	if r.handlers[method] == nil || r.trie[method] == nil {
 		return errors.New("method error")
 	}
-	r.trie[method].Insert(path)
+	r.trie[method].insert(path)
 	r.handlers[method][path] = handler
 	return nil
 }
 
 func (r *router) findRoute(method string, path string) (*node, map[string]string) {
-	values := strings.Split(path, "/")
-	node := r.trie[method].Search(path)
+	result := r.trie[method].search(path)
 	params := make(map[string]string)
-	if node != nil {
-		for i, value := range node.path {
-			if strings.HasPrefix(value, ":") {
-				params[value[1:]] = values[i]
-			}
-			if strings.HasPrefix(value, "*") {
-				params[value[1:]] = strings.Join(values[i:], "/")
-				break
-			}
+	r.fillParams(result, r.trie[method].split(path), params)
+	return result, params
+}
+
+func (r *router) fillParams(node *node, values []string, params map[string]string) {
+	if node == nil {
+		return
+	}
+	for i, value := range node.path {
+		if len(value) > 1 && strings.HasPrefix(value, ":") {
+			params[value[1:]] = values[i]
+		}
+		if len(value) > 1 && strings.HasPrefix(value, "*") {
+			params[value[1:]] = strings.Join(values[i:], "/")
 		}
 	}
-	return node, params
 }

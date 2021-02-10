@@ -1,6 +1,8 @@
 package mua
 
-import "net/http"
+import (
+	"net/http"
+)
 
 type Context struct {
 	Writer     http.ResponseWriter
@@ -8,6 +10,7 @@ type Context struct {
 	Path       string
 	Method     string
 	StatusCode int
+	Params	   map[string]string
 }
 
 func (c *Context) FormValue(key string) string {
