@@ -95,22 +95,3 @@ func (t *trie) searchHelp(cur *node, values []string, level int) (result *node) 
 	}
 	return result
 }
-
-//func (t *trie) searchHelp(cur *node, values []string, level int) *node {
-//	if len(values) == level || strings.HasPrefix(cur.value, "*") {
-//		if cur.isTail {
-//			return cur
-//		}
-//		return nil
-//	}
-//	value := values[level]
-//	for _, son := range cur.sons {
-//		if son.value == value || son.blurry {
-//			result := t.searchHelp(son, values, level+1)
-//			if result != nil {
-//				return result
-//			}
-//		}
-//	}
-//	return nil
-//}

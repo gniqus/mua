@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-type Handler func(http.ResponseWriter, *http.Request)
+type Handler func(ctx *Context)
 
 type engine struct {
 	*router
@@ -37,10 +37,16 @@ func (e *engine) Start(address string) error {
 
 func (e *engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	method := strings.ToUpper(r.Method)
-	node, _ := e.findRoute(method, r.URL.Path)
+	node, params := e.findRoute(method, r.URL.Path)
 	if node != nil {
 		path := "/" + strings.Join(node.path, "/")
-		e.handlers[method][path](w, r)
+		e.handlers[method][path](&Context{
+			Writer: w,
+			Request: r,
+			Path: r.URL.Path,
+			Method: method,
+			Params: params,
+		})
 	} else {
 		fmt.Fprintln(w, "404 NOT FOUND")
 	}
