@@ -23,7 +23,7 @@ func GetEngine() *engine {
 	once.Do(func() {
 		eng = &engine{
 			router: newRouter(),
-			ctrl:   "/",
+			// ctrl:   "/",
 			groups: make(map[string]*routeGroup),
 		}
 		eng.groups[eng.ctrl] = &routeGroup{
@@ -35,10 +35,10 @@ func GetEngine() *engine {
 }
 
 func (e *engine) Group(prefix string) *engine {
-	e.ctrl = prefix
-	if e.groups[eng.ctrl] == nil {
-		e.groups[eng.ctrl] = &routeGroup{
-			prefix:      eng.ctrl,
+	e.ctrl += prefix
+	if e.groups[e.ctrl] == nil {
+		e.groups[e.ctrl] = &routeGroup{
+			prefix:      e.ctrl,
 			middlewares: make([]Handler, 0),
 		}
 	}
@@ -46,11 +46,11 @@ func (e *engine) Group(prefix string) *engine {
 }
 
 func (e *engine) GET(path string, handler Handler) {
-	e.registerRoute("GET", path, handler)
+	e.registerRoute("GET", e.ctrl+path, handler)
 }
 
 func (e *engine) POST(path string, handler Handler) {
-	e.registerRoute("POST", path, handler)
+	e.registerRoute("POST", e.ctrl+path, handler)
 }
 
 func (e *engine) Start(address string) error {
