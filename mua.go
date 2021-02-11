@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 type Handler func(ctx *Context)
@@ -13,13 +14,14 @@ type engine struct {
 }
 
 var eng *engine
+var once sync.Once
 
 func GetEngine() *engine {
-	if eng == nil {
+	once.Do(func() {
 		eng = &engine{
 			router: newRouter(),
 		}
-	}
+	})
 	return eng
 }
 
@@ -41,11 +43,11 @@ func (e *engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if node != nil {
 		path := "/" + strings.Join(node.path, "/")
 		e.handlers[method][path](&Context{
-			Writer: w,
+			Writer:  w,
 			Request: r,
-			Path: r.URL.Path,
-			Method: method,
-			Params: params,
+			Path:    r.URL.Path,
+			Method:  method,
+			Params:  params,
 		})
 	} else {
 		fmt.Fprintln(w, "404 NOT FOUND")

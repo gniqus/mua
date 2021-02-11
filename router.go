@@ -10,6 +10,12 @@ type router struct {
 	handlers map[string]map[string]Handler
 }
 
+type routerGroup struct {
+	parent      *routerGroup
+	prefix      string
+	middlewares []Handler
+}
+
 func newRouter() *router {
 	router := &router{
 		trie:     make(map[string]*trie),
