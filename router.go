@@ -6,41 +6,41 @@ import (
 )
 
 type router struct {
-	trie     map[string]*trie
+	tries    map[string]*trie
 	handlers map[string]map[string]Handler
 }
 
-type routerGroup struct {
-	parent      *routerGroup
+type routeGroup struct {
 	prefix      string
+	parent      *routeGroup
 	middlewares []Handler
 }
 
 func newRouter() *router {
 	router := &router{
-		trie:     make(map[string]*trie),
+		tries:    make(map[string]*trie),
 		handlers: make(map[string]map[string]Handler),
 	}
-	router.trie["POST"] = newTrie()
-	router.trie["GET"] = newTrie()
+	router.tries["POST"] = newTrie()
+	router.tries["GET"] = newTrie()
 	router.handlers["POST"] = make(map[string]Handler)
 	router.handlers["GET"] = make(map[string]Handler)
 	return router
 }
 
 func (r *router) registerRoute(method string, path string, handler Handler) error {
-	if r.handlers[method] == nil || r.trie[method] == nil {
+	if r.handlers[method] == nil || r.tries[method] == nil {
 		return errors.New("method error")
 	}
-	r.trie[method].insert(path)
+	r.tries[method].insert(path)
 	r.handlers[method][path] = handler
 	return nil
 }
 
 func (r *router) findRoute(method string, path string) (*node, map[string]string) {
-	result := r.trie[method].search(path)
+	result := r.tries[method].search(path)
 	params := make(map[string]string)
-	r.fillParams(result, r.trie[method].split(path), params)
+	r.fillParams(result, r.tries[method].split(path), params)
 	return result, params
 }
 

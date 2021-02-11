@@ -10,6 +10,9 @@ import (
 type Handler func(ctx *Context)
 
 type engine struct {
+	ctrl   string
+	groups map[string]*routeGroup
+
 	*router
 }
 
@@ -20,8 +23,25 @@ func GetEngine() *engine {
 	once.Do(func() {
 		eng = &engine{
 			router: newRouter(),
+			ctrl:   "/",
+			groups: make(map[string]*routeGroup),
+		}
+		eng.groups[eng.ctrl] = &routeGroup{
+			prefix:      eng.ctrl,
+			middlewares: make([]Handler, 0),
 		}
 	})
+	return eng
+}
+
+func (e *engine) Group(prefix string) *engine {
+	e.ctrl = prefix
+	if e.groups[eng.ctrl] == nil {
+		e.groups[eng.ctrl] = &routeGroup{
+			prefix:      eng.ctrl,
+			middlewares: make([]Handler, 0),
+		}
+	}
 	return eng
 }
 
