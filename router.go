@@ -32,6 +32,9 @@ func (r *router) registerRoute(method string, path string, handler Handler) erro
 	if r.handlers[method] == nil || r.tries[method] == nil {
 		return errors.New("method error")
 	}
+	if len(path) > 1 && path[0] == '/' && path[1] == '/' {
+		path = path[1:]
+	}
 	r.tries[method].insert(path)
 	r.handlers[method][path] = handler
 	return nil

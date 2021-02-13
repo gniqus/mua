@@ -23,7 +23,7 @@ func GetEngine() *engine {
 	once.Do(func() {
 		eng = &engine{
 			router: newRouter(),
-			// ctrl:   "/",
+			ctrl:   "/",
 			groups: make(map[string]*routeGroup),
 		}
 		eng.groups[eng.ctrl] = &routeGroup{
@@ -35,13 +35,18 @@ func GetEngine() *engine {
 }
 
 func (e *engine) Group(prefix string) *engine {
-	e.ctrl += prefix
+	e.ctrl = prefix
 	if e.groups[e.ctrl] == nil {
 		e.groups[e.ctrl] = &routeGroup{
 			prefix:      e.ctrl,
 			middlewares: make([]Handler, 0),
 		}
 	}
+	return eng
+}
+
+func (e *engine) Use(middlewares ...Handler) *engine {
+	e.groups[e.ctrl].middlewares = append(e.groups[e.ctrl].middlewares, middlewares...)
 	return eng
 }
 
@@ -62,13 +67,14 @@ func (e *engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	node, params := e.findRoute(method, r.URL.Path)
 	if node != nil {
 		path := "/" + strings.Join(node.path, "/")
-		e.handlers[method][path](&Context{
-			Writer:  w,
-			Request: r,
-			Path:    r.URL.Path,
-			Method:  method,
-			Params:  params,
-		})
+		middlewares := make([]Handler, 0)
+		for prefix, group := range e.groups {
+			if strings.HasPrefix(r.URL.Path, prefix) {
+				middlewares = append(middlewares, group.middlewares...)
+			}
+		}
+		middlewares = append(middlewares, e.handlers[method][path])
+		newContext(w, r, params, middlewares).Next()
 	} else {
 		fmt.Fprintln(w, "404 NOT FOUND")
 	}
