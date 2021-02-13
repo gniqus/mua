@@ -2,7 +2,10 @@ package mua
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
+	"os"
+	"path"
 	"strings"
 	"sync"
 )
@@ -14,6 +17,7 @@ type engine struct {
 	groups map[string]*routeGroup
 
 	*router
+	tmpl *template.Template
 }
 
 var eng *engine
@@ -34,6 +38,24 @@ func GetEngine() *engine {
 	return eng
 }
 
+func (e *engine) Mapping(virtual string, real string) *engine {
+	handler := http.StripPrefix(path.Join(e.ctrl, virtual), http.FileServer(http.Dir(real)))
+	e.GET(path.Join(virtual, "/*filepath"), func(c *Context) {
+		filepath := c.Params["filepath"]
+		if _, err := os.Open(path.Join(real, filepath)); err != nil {
+			c.EchoString("404 NOT FOUND")
+			return
+		}
+		handler.ServeHTTP(c.Writer, c.Request)
+	})
+	return eng
+}
+
+func (e *engine) LoadTmpls(dir string, funcMap template.FuncMap) *engine {
+	e.tmpl = template.Must(template.New("mua").Funcs(funcMap).ParseGlob(dir))
+	return eng
+}
+
 func (e *engine) Group(prefix string) *engine {
 	e.ctrl = prefix
 	if e.groups[e.ctrl] == nil {
@@ -50,12 +72,12 @@ func (e *engine) Use(middlewares ...Handler) *engine {
 	return eng
 }
 
-func (e *engine) GET(path string, handler Handler) {
-	e.registerRoute("GET", e.ctrl+path, handler)
+func (e *engine) GET(p string, handler Handler) {
+	e.registerRoute("GET", path.Join(e.ctrl, p), handler)
 }
 
-func (e *engine) POST(path string, handler Handler) {
-	e.registerRoute("POST", e.ctrl+path, handler)
+func (e *engine) POST(p string, handler Handler) {
+	e.registerRoute("POST", path.Join(e.ctrl, p), handler)
 }
 
 func (e *engine) Start(address string) error {
@@ -74,7 +96,11 @@ func (e *engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		middlewares = append(middlewares, e.handlers[method][path])
-		newContext(w, r, params, middlewares).Next()
+		ctx := newContext(w, r)
+		ctx.Params = params
+		ctx.Middlewares = middlewares
+		ctx.Tmpl = e.tmpl
+		ctx.Next()
 	} else {
 		fmt.Fprintln(w, "404 NOT FOUND")
 	}
